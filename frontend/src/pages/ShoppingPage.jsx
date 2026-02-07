@@ -32,18 +32,72 @@ export default function ShoppingPage() {
   const [loading, setLoading] = useState(true);
   const [showExport, setShowExport] = useState(false);
 
+  // Generate a storage key based on the date range
+  const getStorageKey = useCallback(() => {
+    return `shopping-checked-${startDate}-${endDate}`;
+  }, [startDate, endDate]);
+
+  // Load checked state from localStorage
+  const loadCheckedState = useCallback((itemsList) => {
+    const storageKey = getStorageKey();
+    const savedChecked = localStorage.getItem(storageKey);
+    if (savedChecked) {
+      try {
+        const parsed = JSON.parse(savedChecked);
+        // Create a mapping by item name for more resilient matching
+        const checkedByName = {};
+        itemsList.forEach((item, index) => {
+          if (parsed[index] && parsed.itemName === item.name) {
+            checkedByName[index] = true;
+          } else {
+            // Try to find by name in the saved state
+            const savedEntries = Object.entries(parsed);
+            for (const [savedIndex, savedValue] of savedEntries) {
+              if (savedValue.itemName === item.name) {
+                checkedByName[index] = savedValue.checked;
+                break;
+              }
+            }
+          }
+        });
+        return checkedByName;
+      } catch (e) {
+        console.error('Failed to parse saved checked state:', e);
+      }
+    }
+    return {};
+  }, [getStorageKey]);
+
+  // Save checked state to localStorage
+  const saveCheckedState = useCallback((checkedState) => {
+    const storageKey = getStorageKey();
+    // Save with item names for more resilient matching
+    const toSave = {};
+    Object.entries(checkedState).forEach(([index, checked]) => {
+      if (checked && items[index]) {
+        toSave[index] = {
+          checked: true,
+          itemName: items[index].name
+        };
+      }
+    });
+    localStorage.setItem(storageKey, JSON.stringify(toSave));
+  }, [getStorageKey, items]);
+
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const shoppingList = await mealPlansApi.getShoppingListByDateRange(startDate, endDate);
       setItems(shoppingList);
-      setChecked({});
+      // Load checked state from localStorage for this date range
+      const savedChecked = loadCheckedState(shoppingList);
+      setChecked(savedChecked);
     } catch (err) {
       console.error('Failed to load shopping list:', err);
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate]);
+  }, [startDate, endDate, loadCheckedState]);
 
   useEffect(() => {
     loadData();
@@ -60,7 +114,12 @@ export default function ShoppingPage() {
   }, [loadData]);
 
   const toggleChecked = (index) => {
-    setChecked((c) => ({ ...c, [index]: !c[index] }));
+    setChecked((c) => {
+      const newChecked = { ...c, [index]: !c[index] };
+      // Save to localStorage whenever checkbox state changes
+      setTimeout(() => saveCheckedState(newChecked), 0);
+      return newChecked;
+    });
   };
 
   const formatAmount = (item) => {
