@@ -1,0 +1,23 @@
+# Node
+node_modules/
+dist/
+
+# Java / Maven
+backend/target/
+backend/data/
+*.jar
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build output
+backend/src/main/resources/static/
