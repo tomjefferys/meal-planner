@@ -65,4 +65,9 @@ public class MealPlanController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         return mealPlanService.generateShoppingListForDateRange(startDate, endDate);
     }
+
+    @PutMapping("/{planId}/notes")
+    public MealPlan updateDayNotes(@PathVariable Long planId, @RequestBody EntryRequest request) {
+        return mealPlanService.updateDayNotes(planId, request.getDayNotes());
+    }
 }

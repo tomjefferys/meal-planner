@@ -1,11 +1,14 @@
 package com.mealplanner.dto;
 
+import java.util.Map;
+
 public class EntryRequest {
 
     private Long mealId;
     private String dayOfWeek;
     private String mealType;
     private Long assignedCookId;
+    private Map<String, String> dayNotes;
 
     public Long getMealId() {
         return mealId;
@@ -37,5 +40,13 @@ public class EntryRequest {
 
     public void setAssignedCookId(Long assignedCookId) {
         this.assignedCookId = assignedCookId;
+    }
+
+    public Map<String, String> getDayNotes() {
+        return dayNotes;
+    }
+
+    public void setDayNotes(Map<String, String> dayNotes) {
+        this.dayNotes = dayNotes;
     }
 }

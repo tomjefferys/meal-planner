@@ -44,6 +44,8 @@ export const mealPlansApi = {
     request(`/meal-plans/entries/${entryId}`, { method: 'PUT', body: JSON.stringify(entry) }),
   deleteEntry: (entryId) =>
     request(`/meal-plans/entries/${entryId}`, { method: 'DELETE' }),
+  updateNotes: (planId, dayNotes) =>
+    request(`/meal-plans/${planId}/notes`, { method: 'PUT', body: JSON.stringify({ dayNotes }) }),
   getShoppingList: (planId) => request(`/meal-plans/${planId}/shopping-list`),
   getShoppingListByDateRange: (startDate, endDate) =>
     request(`/meal-plans/shopping-list?startDate=${startDate}&endDate=${endDate}`),

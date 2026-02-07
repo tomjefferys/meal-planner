@@ -36,6 +36,8 @@ export default function PlannerPage() {
   const [people, setPeople] = useState([]);
   const [loading, setLoading] = useState(true);
   const [mealSelectSlot, setMealSelectSlot] = useState(null);
+  const [editingNoteDay, setEditingNoteDay] = useState(null);
+  const [noteText, setNoteText] = useState('');
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -153,6 +155,35 @@ export default function PlannerPage() {
     setWeekStart(toISODate(getSaturday(new Date())));
   };
 
+  const handleEditNote = (day) => {
+    setEditingNoteDay(day);
+    setNoteText(plan?.dayNotes?.[day] || '');
+  };
+
+  const handleSaveNote = async (day) => {
+    try {
+      const updatedNotes = {
+        ...plan.dayNotes,
+        [day]: noteText.trim(),
+      };
+      // Remove empty notes
+      if (!noteText.trim()) {
+        delete updatedNotes[day];
+      }
+      await mealPlansApi.updateNotes(plan.id, updatedNotes);
+      loadData();
+      setEditingNoteDay(null);
+      setNoteText('');
+    } catch (err) {
+      console.error('Failed to update note:', err);
+    }
+  };
+
+  const handleCancelNote = () => {
+    setEditingNoteDay(null);
+    setNoteText('');
+  };
+
   if (loading) return <div className="loading">Loading planner...</div>;
 
   return (
@@ -185,6 +216,77 @@ export default function PlannerPage() {
             <div key={day} className="planner-day-header">
               <div>{DAY_LABELS[i]}</div>
               <div className="date">{formatDate(addDays(weekStart, i))}</div>
+              <div className="day-notes-section">
+                {editingNoteDay === day ? (
+                  <div className="notes-editor">
+                    <textarea
+                      value={noteText}
+                      onChange={(e) => setNoteText(e.target.value)}
+                      placeholder="Add notes for this day..."
+                      rows={2}
+                      autoFocus
+                      style={{
+                        width: '100%',
+                        padding: '4px',
+                        fontSize: '0.75rem',
+                        border: '1px solid #ddd',
+                        borderRadius: '4px',
+                        resize: 'vertical',
+                      }}
+                    />
+                    <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+                      <button
+                        onClick={() => handleSaveNote(day)}
+                        className="btn btn-primary"
+                        style={{ fontSize: '0.7rem', padding: '2px 8px' }}
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={handleCancelNote}
+                        className="btn btn-secondary"
+                        style={{ fontSize: '0.7rem', padding: '2px 8px' }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="notes-display" onClick={() => handleEditNote(day)}>
+                    {plan?.dayNotes?.[day] ? (
+                      <div
+                        className="notes-text"
+                        style={{
+                          fontSize: '0.7rem',
+                          color: '#666',
+                          padding: '4px',
+                          cursor: 'pointer',
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                          backgroundColor: '#fffbea',
+                          borderRadius: '4px',
+                          border: '1px dashed #ccc',
+                        }}
+                      >
+                        📝 {plan.dayNotes[day]}
+                      </div>
+                    ) : (
+                      <div
+                        className="notes-placeholder"
+                        style={{
+                          fontSize: '0.7rem',
+                          color: '#999',
+                          padding: '4px',
+                          cursor: 'pointer',
+                          fontStyle: 'italic',
+                        }}
+                      >
+                        + Add notes
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           ))}
 

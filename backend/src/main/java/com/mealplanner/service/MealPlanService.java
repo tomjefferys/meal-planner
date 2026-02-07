@@ -194,4 +194,14 @@ public class MealPlanService {
             default -> 0;
         };
     }
+
+    @Transactional
+    public MealPlan updateDayNotes(Long planId, java.util.Map<String, String> dayNotes) {
+        MealPlan plan = findById(planId);
+        if (dayNotes != null) {
+            plan.getDayNotes().clear();
+            plan.getDayNotes().putAll(dayNotes);
+        }
+        return mealPlanRepository.save(plan);
+    }
 }
