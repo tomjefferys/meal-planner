@@ -49,6 +49,16 @@ export default function ShoppingPage() {
     loadData();
   }, [loadData]);
 
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadData();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [loadData]);
+
   const toggleChecked = (index) => {
     setChecked((c) => ({ ...c, [index]: !c[index] }));
   };
@@ -91,6 +101,9 @@ export default function ShoppingPage() {
       <div className="page-header">
         <h1>🛒 Shopping List</h1>
         <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="btn btn-secondary btn-sm" onClick={loadData}>
+            🔄 Refresh
+          </button>
           <button className="btn btn-secondary btn-sm" onClick={() => setShowExport(!showExport)}>
             📋 Export
           </button>
