@@ -2,15 +2,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { mealPlansApi, mealsApi, peopleApi } from '../api';
 
-const DAYS = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
-const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DAYS = ['SATURDAY', 'SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'];
+const DAY_LABELS = ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 const MEAL_TYPES = ['BREAKFAST', 'LUNCH', 'DINNER'];
 
-function getMonday(date) {
+function getSaturday(date) {
   const d = new Date(date);
   const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
+  const diff = (day - 6 + 7) % 7;
+  d.setDate(d.getDate() - diff);
   return d;
 }
 
@@ -30,7 +30,7 @@ function toISODate(date) {
 }
 
 export default function PlannerPage() {
-  const [weekStart, setWeekStart] = useState(() => toISODate(getMonday(new Date())));
+  const [weekStart, setWeekStart] = useState(() => toISODate(getSaturday(new Date())));
   const [plan, setPlan] = useState(null);
   const [meals, setMeals] = useState([]);
   const [people, setPeople] = useState([]);
@@ -150,7 +150,7 @@ export default function PlannerPage() {
   };
 
   const goToday = () => {
-    setWeekStart(toISODate(getMonday(new Date())));
+    setWeekStart(toISODate(getSaturday(new Date())));
   };
 
   if (loading) return <div className="loading">Loading planner...</div>;
@@ -227,6 +227,8 @@ export default function PlannerPage() {
                                     e.stopPropagation();
                                     handleRemoveEntry(entry.id);
                                   }}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  onTouchStart={(e) => e.stopPropagation()}
                                 >
                                   ✕
                                 </button>

@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { mealPlansApi } from '../api';
 
-function getMonday(date) {
+function getSaturday(date) {
   const d = new Date(date);
   const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
+  const diff = (day - 6 + 7) % 7;
+  d.setDate(d.getDate() - diff);
   return d;
 }
 
@@ -25,28 +25,25 @@ function addDays(dateStr, days) {
 }
 
 export default function ShoppingPage() {
-  const [weekStart] = useState(() => toISODate(getMonday(new Date())));
-  const [plan, setPlan] = useState(null);
+  const [startDate, setStartDate] = useState(() => toISODate(getSaturday(new Date())));
+  const [endDate, setEndDate] = useState(() => addDays(toISODate(getSaturday(new Date())), 6));
   const [items, setItems] = useState([]);
   const [checked, setChecked] = useState({});
   const [loading, setLoading] = useState(true);
   const [showExport, setShowExport] = useState(false);
 
   const loadData = useCallback(async () => {
+    setLoading(true);
     try {
-      const planData = await mealPlansApi.getWeek(weekStart);
-      setPlan(planData);
-
-      if (planData?.id) {
-        const shoppingList = await mealPlansApi.getShoppingList(planData.id);
-        setItems(shoppingList);
-      }
+      const shoppingList = await mealPlansApi.getShoppingListByDateRange(startDate, endDate);
+      setItems(shoppingList);
+      setChecked({});
     } catch (err) {
       console.error('Failed to load shopping list:', err);
     } finally {
       setLoading(false);
     }
-  }, [weekStart]);
+  }, [startDate, endDate]);
 
   useEffect(() => {
     loadData();
@@ -103,12 +100,47 @@ export default function ShoppingPage() {
         </div>
       </div>
 
-      <p style={{ color: '#666', marginBottom: '16px' }}>
-        Week of {formatDate(weekStart)} – {formatDate(addDays(weekStart, 6))}
-        {plan?.entries?.length > 0 && (
-          <span> · {plan.entries.length} meals planned</span>
-        )}
-      </p>
+      <div className="shopping-date-controls">
+        <div className="date-range-inputs">
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label>From</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+          <div className="form-group" style={{ marginBottom: 0 }}>
+            <label>To</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="date-presets">
+          <button className="btn btn-secondary btn-sm" onClick={() => {
+            const sat = toISODate(getSaturday(new Date()));
+            setStartDate(sat);
+            setEndDate(addDays(sat, 6));
+          }}>This Week</button>
+          <button className="btn btn-secondary btn-sm" onClick={() => {
+            const sat = toISODate(getSaturday(new Date()));
+            setStartDate(sat);
+            setEndDate(addDays(sat, 1));
+          }}>Weekend</button>
+          <button className="btn btn-secondary btn-sm" onClick={() => {
+            const sat = toISODate(getSaturday(new Date()));
+            setStartDate(addDays(sat, 2));
+            setEndDate(addDays(sat, 6));
+          }}>Weekdays</button>
+        </div>
+        <p style={{ color: '#666', fontSize: '0.9rem' }}>
+          {formatDate(startDate)} – {formatDate(endDate)}
+          {items.length > 0 && <span> · {items.length} items</span>}
+        </p>
+      </div>
 
       {items.length === 0 ? (
         <div className="empty-state">

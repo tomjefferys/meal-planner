@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface MealRepository extends JpaRepository<Meal, Long> {
     List<Meal> findByTitleContainingIgnoreCase(String title);
+    java.util.Optional<Meal> findByTitleIgnoreCase(String title);
 }

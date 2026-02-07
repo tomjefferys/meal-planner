@@ -771,6 +771,65 @@ body {
   margin-bottom: 8px;
 }
 
+/* ===== Shopping Date Controls ===== */
+.shopping-date-controls {
+  margin-bottom: 24px;
+}
+
+.date-range-inputs {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.date-range-inputs input[type="date"] {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+
+.date-range-inputs input[type="date"]:focus {
+  outline: none;
+  border-color: #4caf50;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.15);
+}
+
+.date-presets {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+/* ===== Person Ratings ===== */
+.meal-card-person-ratings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.person-rating-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: #fff8e1;
+  border-radius: 12px;
+  font-size: 0.75rem;
+}
+
+.person-rating-badge .person-name {
+  font-weight: 600;
+  color: #555;
+}
+
+.person-rating-badge .rating-stars .star {
+  font-size: 0.85rem;
+}
+
 /* ===== Empty States ===== */
 .empty-state {
   text-align: center;

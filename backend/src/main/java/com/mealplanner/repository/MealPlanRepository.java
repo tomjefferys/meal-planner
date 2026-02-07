@@ -9,4 +9,5 @@ import java.util.List;
 public interface MealPlanRepository extends JpaRepository<MealPlan, Long> {
     Optional<MealPlan> findByWeekStartDate(LocalDate weekStartDate);
     List<MealPlan> findAllByOrderByWeekStartDateDesc();
+    List<MealPlan> findByWeekStartDateBetween(LocalDate from, LocalDate to);
 }

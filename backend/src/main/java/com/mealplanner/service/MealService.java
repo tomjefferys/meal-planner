@@ -4,7 +4,9 @@ import com.mealplanner.model.Meal;
 import com.mealplanner.repository.MealRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class MealService {
@@ -46,5 +48,24 @@ public class MealService {
 
     public void delete(Long id) {
         mealRepository.deleteById(id);
+    }
+
+    public Map<String, Object> importMeals(List<Meal> meals) {
+        int imported = 0;
+        int skipped = 0;
+        for (Meal meal : meals) {
+            boolean exists = mealRepository.findByTitleIgnoreCase(meal.getTitle()).isPresent();
+            if (!exists) {
+                meal.setId(null);
+                mealRepository.save(meal);
+                imported++;
+            } else {
+                skipped++;
+            }
+        }
+        Map<String, Object> result = new HashMap<>();
+        result.put("imported", imported);
+        result.put("skipped", skipped);
+        return result;
     }
 }

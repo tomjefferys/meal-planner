@@ -10,6 +10,7 @@ export default function MealsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [ratings, setRatings] = useState({});
+  const [mealRatings, setMealRatings] = useState({});
   const [ratingModal, setRatingModal] = useState(null);
   const [ratingForm, setRatingForm] = useState({ personId: '', rating: 0, comment: '' });
   const [search, setSearch] = useState('');
@@ -19,8 +20,9 @@ export default function MealsPage() {
       const data = await mealsApi.getAll(search || undefined);
       setMeals(data);
 
-      // Load average ratings
+      // Load average and individual ratings
       const ratingsMap = {};
+      const mealRatingsMap = {};
       for (const meal of data) {
         try {
           const avg = await ratingsApi.getAverage(meal.id);
@@ -28,8 +30,15 @@ export default function MealsPage() {
         } catch {
           /* ignore */
         }
+        try {
+          const individualRatings = await ratingsApi.getByMeal(meal.id);
+          mealRatingsMap[meal.id] = individualRatings;
+        } catch {
+          /* ignore */
+        }
       }
       setRatings(ratingsMap);
+      setMealRatings(mealRatingsMap);
     } catch (err) {
       console.error('Failed to load meals:', err);
     } finally {
@@ -85,6 +94,39 @@ export default function MealsPage() {
     }
   };
 
+  const handleExport = async () => {
+    try {
+      const data = await mealsApi.getAll();
+      const exportData = data.map(({ id, ...rest }) => rest);
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'meals-export.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Export failed:', err);
+      alert('Failed to export meals.');
+    }
+  };
+
+  const handleImport = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const importData = JSON.parse(text);
+      const result = await mealsApi.importAll(importData);
+      alert(`Import complete: ${result.imported} imported, ${result.skipped} skipped (already exist).`);
+      loadMeals();
+    } catch (err) {
+      console.error('Import failed:', err);
+      alert('Failed to import meals. Please check the file format.');
+    }
+    event.target.value = '';
+  };
+
   const effortBadge = (effort) => {
     const classes = { EASY: 'badge-easy', MEDIUM: 'badge-medium', HARD: 'badge-hard' };
     return (
@@ -127,6 +169,18 @@ export default function MealsPage() {
           >
             + Add Meal
           </button>
+          <button className="btn btn-secondary" onClick={handleExport}>
+            📤 Export
+          </button>
+          <label className="btn btn-secondary" style={{ cursor: 'pointer' }}>
+            📥 Import
+            <input
+              type="file"
+              accept=".json"
+              onChange={handleImport}
+              style={{ display: 'none' }}
+            />
+          </label>
         </div>
       </div>
 
@@ -194,6 +248,17 @@ export default function MealsPage() {
                   📝 {meal.ingredients.map((i) => i.name).join(', ')}
                 </p>
               )}
+
+              {mealRatings[meal.id]?.length > 0 && (
+                <div className="meal-card-person-ratings">
+                  {mealRatings[meal.id].map((r) => (
+                    <div key={r.id} className="person-rating-badge">
+                      <span className="person-name">{r.person.name}</span>
+                      <RatingStars value={r.rating} readonly />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -225,9 +290,19 @@ export default function MealsPage() {
               <label>Who&apos;s rating?</label>
               <select
                 value={ratingForm.personId}
-                onChange={(e) =>
-                  setRatingForm((f) => ({ ...f, personId: e.target.value }))
-                }
+                onChange={(e) => {
+                  const pid = e.target.value;
+                  if (pid && ratingModal && mealRatings[ratingModal.id]) {
+                    const existing = mealRatings[ratingModal.id].find(
+                      (r) => r.person.id === parseInt(pid)
+                    );
+                    if (existing) {
+                      setRatingForm({ personId: pid, rating: existing.rating, comment: existing.comment || '' });
+                      return;
+                    }
+                  }
+                  setRatingForm((f) => ({ ...f, personId: pid, rating: 0, comment: '' }));
+                }}
               >
                 <option value="">Select person...</option>
                 {people.map((p) => (

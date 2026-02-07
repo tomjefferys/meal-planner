@@ -11,4 +11,6 @@ public interface MealRatingRepository extends JpaRepository<MealRating, Long> {
 
     @Query("SELECT AVG(r.rating) FROM MealRating r WHERE r.meal.id = :mealId")
     Double findAverageRatingByMealId(Long mealId);
+
+    java.util.Optional<MealRating> findFirstByMealIdAndPersonId(Long mealId, Long personId);
 }

@@ -10,7 +10,10 @@ import com.mealplanner.repository.PersonRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class MealRatingService {
@@ -28,7 +31,17 @@ public class MealRatingService {
     }
 
     public List<MealRating> findByMeal(Long mealId) {
-        return ratingRepository.findByMealId(mealId);
+        List<MealRating> allRatings = ratingRepository.findByMealId(mealId);
+        // Deduplicate: keep only the latest rating per person
+        Map<Long, MealRating> latestByPerson = new LinkedHashMap<>();
+        for (MealRating r : allRatings) {
+            Long personId = r.getPerson().getId();
+            MealRating existing = latestByPerson.get(personId);
+            if (existing == null || (r.getRatedDate() != null && (existing.getRatedDate() == null || r.getRatedDate().isAfter(existing.getRatedDate())))) {
+                latestByPerson.put(personId, r);
+            }
+        }
+        return new ArrayList<>(latestByPerson.values());
     }
 
     public Double getAverageRating(Long mealId) {
@@ -41,9 +54,16 @@ public class MealRatingService {
         Person person = personRepository.findById(request.getPersonId())
                 .orElseThrow(() -> new RuntimeException("Person not found"));
 
-        MealRating rating = new MealRating();
-        rating.setMeal(meal);
-        rating.setPerson(person);
+        // Upsert: one rating per person per meal
+        MealRating rating = ratingRepository.findFirstByMealIdAndPersonId(
+                request.getMealId(), request.getPersonId())
+                .orElseGet(() -> {
+                    MealRating r = new MealRating();
+                    r.setMeal(meal);
+                    r.setPerson(person);
+                    return r;
+                });
+
         rating.setRating(request.getRating());
         rating.setComment(request.getComment());
         rating.setRatedDate(LocalDate.now());

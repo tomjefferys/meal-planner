@@ -58,4 +58,11 @@ public class MealPlanController {
     public List<ShoppingItem> getShoppingList(@PathVariable Long planId) {
         return mealPlanService.generateShoppingList(planId);
     }
+
+    @GetMapping("/shopping-list")
+    public List<ShoppingItem> getShoppingListByDateRange(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return mealPlanService.generateShoppingListForDateRange(startDate, endDate);
+    }
 }

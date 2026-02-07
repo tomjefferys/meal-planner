@@ -20,6 +20,8 @@ export const mealsApi = {
   create: (meal) => request('/meals', { method: 'POST', body: JSON.stringify(meal) }),
   update: (id, meal) => request(`/meals/${id}`, { method: 'PUT', body: JSON.stringify(meal) }),
   delete: (id) => request(`/meals/${id}`, { method: 'DELETE' }),
+  exportAll: () => request('/meals/export'),
+  importAll: (meals) => request('/meals/import', { method: 'POST', body: JSON.stringify(meals) }),
 };
 
 // People
@@ -43,6 +45,8 @@ export const mealPlansApi = {
   deleteEntry: (entryId) =>
     request(`/meal-plans/entries/${entryId}`, { method: 'DELETE' }),
   getShoppingList: (planId) => request(`/meal-plans/${planId}/shopping-list`),
+  getShoppingListByDateRange: (startDate, endDate) =>
+    request(`/meal-plans/shopping-list?startDate=${startDate}&endDate=${endDate}`),
 };
 
 // Ratings

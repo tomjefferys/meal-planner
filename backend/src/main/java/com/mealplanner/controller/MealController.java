@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/meals")
@@ -44,5 +45,15 @@ public class MealController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         mealService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/export")
+    public List<Meal> exportAll() {
+        return mealService.findAll();
+    }
+
+    @PostMapping("/import")
+    public Map<String, Object> importMeals(@RequestBody List<Meal> meals) {
+        return mealService.importMeals(meals);
     }
 }

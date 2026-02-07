@@ -44,7 +44,7 @@ public class MealPlanService {
 
     @Transactional
     public MealPlan getOrCreateForWeek(LocalDate date) {
-        LocalDate weekStart = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate weekStart = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.SATURDAY));
         return mealPlanRepository.findByWeekStartDate(weekStart)
                 .orElseGet(() -> {
                     MealPlan plan = new MealPlan();
@@ -103,19 +103,45 @@ public class MealPlanService {
 
     @Transactional
     public void deleteEntry(Long entryId) {
-        entryRepository.deleteById(entryId);
+        MealPlanEntry entry = entryRepository.findById(entryId)
+                .orElseThrow(() -> new RuntimeException("Entry not found"));
+        MealPlan plan = entry.getMealPlan();
+        plan.getEntries().remove(entry);
+        mealPlanRepository.save(plan);
     }
 
     public List<ShoppingItem> generateShoppingList(Long planId) {
         MealPlan plan = findById(planId);
+        return combineIngredients(plan.getEntries());
+    }
+
+    public List<ShoppingItem> generateShoppingListForDateRange(LocalDate startDate, LocalDate endDate) {
+        LocalDate searchFrom = startDate.minusDays(6);
+        List<MealPlan> plans = mealPlanRepository.findByWeekStartDateBetween(searchFrom, endDate);
+
+        List<MealPlanEntry> entriesInRange = new ArrayList<>();
+        for (MealPlan plan : plans) {
+            for (MealPlanEntry entry : plan.getEntries()) {
+                LocalDate entryDate = plan.getWeekStartDate().plusDays(dayOffset(entry.getDayOfWeek()));
+                if (!entryDate.isBefore(startDate) && !entryDate.isAfter(endDate)) {
+                    entriesInRange.add(entry);
+                }
+            }
+        }
+
+        return combineIngredients(entriesInRange);
+    }
+
+    private List<ShoppingItem> combineIngredients(List<MealPlanEntry> entries) {
         Map<String, ShoppingItem> items = new LinkedHashMap<>();
 
-        for (MealPlanEntry entry : plan.getEntries()) {
+        for (MealPlanEntry entry : entries) {
             if (entry.getMeal() == null || entry.getMeal().getIngredients() == null) continue;
 
             for (Ingredient ingredient : entry.getMeal().getIngredients()) {
-                String key = ingredient.getName().toLowerCase().trim()
-                        + "|" + ingredient.getUnit().toLowerCase().trim();
+                String normalizedName = normalizeIngredientName(ingredient.getName());
+                String normalizedUnit = normalizeIngredientName(ingredient.getUnit());
+                String key = normalizedName + "|" + normalizedUnit;
 
                 items.merge(key,
                         new ShoppingItem(ingredient.getName(), ingredient.getQuantity(), ingredient.getUnit()),
@@ -129,5 +155,43 @@ public class MealPlanService {
         List<ShoppingItem> result = new ArrayList<>(items.values());
         result.sort(Comparator.comparing(ShoppingItem::getName, String.CASE_INSENSITIVE_ORDER));
         return result;
+    }
+
+    private String normalizeIngredientName(String name) {
+        if (name == null) return "";
+        return singularize(name.toLowerCase().trim());
+    }
+
+    private String singularize(String word) {
+        if (word == null || word.isEmpty()) return word;
+        if (word.endsWith("ches") || word.endsWith("shes") || word.endsWith("sses") || word.endsWith("xes") || word.endsWith("zes")) {
+            return word.substring(0, word.length() - 2);
+        }
+        if (word.endsWith("ies") && word.length() > 4) {
+            return word.substring(0, word.length() - 3) + "y";
+        }
+        if (word.endsWith("ves") && word.length() > 4) {
+            return word.substring(0, word.length() - 3) + "f";
+        }
+        if (word.endsWith("oes") && word.length() > 4) {
+            return word.substring(0, word.length() - 2);
+        }
+        if (word.endsWith("s") && !word.endsWith("ss") && !word.endsWith("us") && word.length() > 2) {
+            return word.substring(0, word.length() - 1);
+        }
+        return word;
+    }
+
+    private int dayOffset(String dayOfWeek) {
+        return switch (dayOfWeek) {
+            case "SATURDAY" -> 0;
+            case "SUNDAY" -> 1;
+            case "MONDAY" -> 2;
+            case "TUESDAY" -> 3;
+            case "WEDNESDAY" -> 4;
+            case "THURSDAY" -> 5;
+            case "FRIDAY" -> 6;
+            default -> 0;
+        };
     }
 }
