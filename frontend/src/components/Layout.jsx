@@ -3,6 +3,7 @@ import { NavLink, Outlet } from 'react-router-dom';
 export default function Layout() {
   const links = [
     { to: '/planner', icon: '📅', label: 'Weekly Plan' },
+    { to: '/summary', icon: '📋', label: 'Summary' },
     { to: '/meals', icon: '🍲', label: 'Meals' },
     { to: '/people', icon: '👨‍👩‍👧‍👦', label: 'Family' },
     { to: '/shopping', icon: '🛒', label: 'Shopping' },

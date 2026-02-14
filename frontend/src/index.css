@@ -471,15 +471,18 @@ body {
   color: #333;
 }
 
-.planner-grid {
+/* New day-column layout */
+.planner-day-grid {
   display: grid;
-  grid-template-columns: 80px repeat(7, 1fr);
-  gap: 4px;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
   margin-bottom: 32px;
 }
 
-.planner-corner {
-  /* empty top-left cell */
+.planner-day-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .planner-day-header {
@@ -498,41 +501,52 @@ body {
   opacity: 0.8;
 }
 
-.planner-label {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 0.75rem;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.planner-slot {
-  min-height: 80px;
+.planner-day-content {
+  min-height: 120px;
   border: 2px dashed #e0e0e0;
-  border-radius: 8px;
+  border-top: none;
   padding: 6px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
   transition: all 0.2s;
   background: white;
-  position: relative;
+  flex: 1;
 }
 
-.planner-slot.drag-over {
+.planner-day-content.drag-over {
   border-color: #4caf50;
   background: #e8f5e9;
   box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
 }
 
-.planner-slot.has-meal {
-  border-style: solid;
-  border-color: #c8e6c9;
-  background: #f1f8e9;
+.day-notes-section {
+  border: 1px solid #e0e0e0;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  padding: 4px 6px;
+  background: white;
+}
+
+.notes-text {
+  font-size: 0.7rem;
+  color: #666;
+  padding: 4px;
+  cursor: pointer;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background-color: #fffbea;
+  border-radius: 4px;
+  border: 1px dashed #ccc;
+}
+
+.notes-placeholder {
+  font-size: 0.7rem;
+  color: #999;
+  padding: 4px;
+  cursor: pointer;
+  font-style: italic;
 }
 
 .planner-meal-chip {
@@ -857,6 +871,100 @@ body {
   font-size: 1.1rem;
 }
 
+/* ===== Weekly Summary ===== */
+.summary-controls {
+  margin-bottom: 24px;
+}
+
+.summary-print-header {
+  display: none;
+}
+
+.summary-days {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.summary-day-card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  break-inside: avoid;
+}
+
+.summary-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #2e7d32, #43a047);
+  color: white;
+}
+
+.summary-day-name {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.summary-day-date {
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.summary-day-body {
+  padding: 12px 16px;
+}
+
+.summary-no-plans {
+  color: #bbb;
+  font-style: italic;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.summary-meals {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.summary-meal-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 6px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.summary-meal-item:last-child {
+  border-bottom: none;
+}
+
+.summary-meal-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.summary-meal-cook {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.summary-notes {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #fffbea;
+  border-radius: 6px;
+  border: 1px dashed #e0c97f;
+  font-size: 0.85rem;
+  color: #666;
+  white-space: pre-wrap;
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
   .sidebar {
@@ -873,9 +981,9 @@ body {
     padding-bottom: 80px;
   }
 
-  .planner-grid {
-    grid-template-columns: 60px repeat(7, 1fr);
-    gap: 2px;
+  .planner-day-grid {
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
   }
 
   .planner-day-header {
@@ -883,8 +991,8 @@ body {
     padding: 6px 2px;
   }
 
-  .planner-slot {
-    min-height: 60px;
+  .planner-day-content {
+    min-height: 80px;
     padding: 4px;
   }
 
@@ -922,5 +1030,57 @@ body {
     break-inside: avoid;
     border-bottom: 1px solid #eee;
     border-radius: 0;
+  }
+
+  /* Weekly Summary print styles */
+  .summary-print-header {
+    display: block !important;
+    text-align: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #333;
+  }
+
+  .summary-print-header h1 {
+    font-size: 1.5rem;
+    color: #333;
+    margin-bottom: 4px;
+  }
+
+  .summary-print-header p {
+    font-size: 1rem;
+    color: #666;
+  }
+
+  .summary-controls {
+    display: none !important;
+  }
+
+  .page-header {
+    display: none !important;
+  }
+
+  .summary-day-card {
+    box-shadow: none;
+    border: 1px solid #ddd;
+    margin-bottom: 8px;
+    break-inside: avoid;
+  }
+
+  .summary-day-header {
+    background: #f5f5f5 !important;
+    color: #333 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .summary-meal-item {
+    padding: 4px 0;
+  }
+
+  .summary-notes {
+    background: #f9f9f9 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }

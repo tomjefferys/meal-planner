@@ -155,16 +155,16 @@ class MealPlanServiceTest {
         assertThat(result.getMealType()).isEqualTo(MealType.DINNER);
         assertThat(result.getMeal()).isEqualTo(sampleMeal);
         assertThat(result.getAssignedCook()).isEqualTo(samplePerson);
+        assertThat(result.getDisplayOrder()).isEqualTo(0);
         assertThat(samplePlan.getEntries()).hasSize(1);
     }
 
     @Test
-    void addEntry_addsEntryWithoutCook() {
+    void addEntry_addsEntryWithoutMealType() {
         EntryRequest request = new EntryRequest();
         request.setMealId(1L);
         request.setDayOfWeek("TUESDAY");
-        request.setMealType("LUNCH");
-        // No assigned cook
+        // No meal type
 
         when(mealPlanRepository.findById(1L)).thenReturn(Optional.of(samplePlan));
         when(mealRepository.findById(1L)).thenReturn(Optional.of(sampleMeal));
@@ -172,6 +172,7 @@ class MealPlanServiceTest {
 
         MealPlanEntry result = mealPlanService.addEntry(1L, request);
 
+        assertThat(result.getMealType()).isNull();
         assertThat(result.getAssignedCook()).isNull();
     }
 

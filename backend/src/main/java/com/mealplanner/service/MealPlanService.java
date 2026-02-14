@@ -65,7 +65,16 @@ public class MealPlanService {
         entry.setMealPlan(plan);
         entry.setMeal(meal);
         entry.setDayOfWeek(request.getDayOfWeek());
-        entry.setMealType(MealType.valueOf(request.getMealType()));
+        if (request.getMealType() != null && !request.getMealType().isEmpty()) {
+            entry.setMealType(MealType.valueOf(request.getMealType()));
+        }
+
+        // Set display order to place new entry at end of day's meals
+        int maxOrder = plan.getEntries().stream()
+                .filter(e -> request.getDayOfWeek().equals(e.getDayOfWeek()))
+                .mapToInt(MealPlanEntry::getDisplayOrder)
+                .max().orElse(-1);
+        entry.setDisplayOrder(maxOrder + 1);
 
         if (request.getAssignedCookId() != null) {
             Person cook = personRepository.findById(Objects.requireNonNull(request.getAssignedCookId()))
@@ -87,7 +96,14 @@ public class MealPlanService {
             entry.setDayOfWeek(request.getDayOfWeek());
         }
         if (request.getMealType() != null) {
-            entry.setMealType(MealType.valueOf(request.getMealType()));
+            if (request.getMealType().isEmpty()) {
+                entry.setMealType(null);
+            } else {
+                entry.setMealType(MealType.valueOf(request.getMealType()));
+            }
+        }
+        if (request.getDisplayOrder() != null) {
+            entry.setDisplayOrder(request.getDisplayOrder());
         }
         if (request.getMealId() != null) {
             Meal meal = mealRepository.findById(Objects.requireNonNull(request.getMealId()))

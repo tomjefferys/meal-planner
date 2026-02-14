@@ -4,7 +4,6 @@ import { mealPlansApi, mealsApi, peopleApi } from '../api';
 
 const DAYS = ['SATURDAY', 'SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'];
 const DAY_LABELS = ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
-const MEAL_TYPES = ['BREAKFAST', 'LUNCH', 'DINNER'];
 
 function getSaturday(date) {
   const d = new Date(date);
@@ -35,7 +34,7 @@ export default function PlannerPage() {
   const [meals, setMeals] = useState([]);
   const [people, setPeople] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [mealSelectSlot, setMealSelectSlot] = useState(null);
+  const [mealSelectDay, setMealSelectDay] = useState(null);
   const [editingNoteDay, setEditingNoteDay] = useState(null);
   const [noteText, setNoteText] = useState('');
 
@@ -61,28 +60,23 @@ export default function PlannerPage() {
     loadData();
   }, [loadData]);
 
-  const getEntry = (day, mealType) => {
-    return plan?.entries?.find(
-      (e) => e.dayOfWeek === day && e.mealType === mealType
-    );
+  const getEntriesForDay = (day) => {
+    return (plan?.entries || [])
+      .filter((e) => e.dayOfWeek === day)
+      .sort((a, b) => a.displayOrder - b.displayOrder);
   };
 
-  const handleAddMeal = async (mealId, day, mealType) => {
+  const handleAddMeal = async (mealId, day) => {
     try {
-      const existing = getEntry(day, mealType);
-      if (existing) {
-        await mealPlansApi.deleteEntry(existing.id);
-      }
       await mealPlansApi.addEntry(plan.id, {
         mealId,
         dayOfWeek: day,
-        mealType,
       });
       loadData();
     } catch (err) {
       console.error('Failed to add meal:', err);
     }
-    setMealSelectSlot(null);
+    setMealSelectDay(null);
   };
 
   const handleRemoveEntry = async (entryId) => {
@@ -108,52 +102,30 @@ export default function PlannerPage() {
   const handleDragEnd = async (result) => {
     const { source, destination, draggableId } = result;
     if (!destination) return;
-    if (source.droppableId === destination.droppableId) return;
+    if (source.droppableId === destination.droppableId && source.index === destination.index) return;
 
     if (source.droppableId === 'available-meals') {
-      // Dragging from available meals to a slot
       const mealId = parseInt(draggableId.replace('avail-', ''));
-      const [day, mealType] = destination.droppableId.split('::');
-      await handleAddMeal(mealId, day, mealType);
+      const destDay = destination.droppableId;
+      await handleAddMeal(mealId, destDay);
     } else if (destination.droppableId === 'available-meals') {
-      // Dragging from slot back to available = remove
       const entryId = parseInt(draggableId.replace('entry-', ''));
       await handleRemoveEntry(entryId);
     } else {
-      // Moving between slots
       const entryId = parseInt(draggableId.replace('entry-', ''));
-      const [destDay, destType] = destination.droppableId.split('::');
-
-      // Check if destination already has an entry
-      const destEntry = getEntry(destDay, destType);
-      if (destEntry) {
-        // Swap: move dest entry to source slot
-        const [srcDay, srcType] = source.droppableId.split('::');
-        await mealPlansApi.updateEntry(destEntry.id, {
-          dayOfWeek: srcDay,
-          mealType: srcType,
-        });
-      }
+      const destDay = destination.droppableId;
 
       await mealPlansApi.updateEntry(entryId, {
         dayOfWeek: destDay,
-        mealType: destType,
+        displayOrder: destination.index,
       });
       loadData();
     }
   };
 
-  const prevWeek = () => {
-    setWeekStart(addDays(weekStart, -7));
-  };
-
-  const nextWeek = () => {
-    setWeekStart(addDays(weekStart, 7));
-  };
-
-  const goToday = () => {
-    setWeekStart(toISODate(getSaturday(new Date())));
-  };
+  const prevWeek = () => setWeekStart(addDays(weekStart, -7));
+  const nextWeek = () => setWeekStart(addDays(weekStart, 7));
+  const goToday = () => setWeekStart(toISODate(getSaturday(new Date())));
 
   const handleEditNote = (day) => {
     setEditingNoteDay(day);
@@ -162,14 +134,8 @@ export default function PlannerPage() {
 
   const handleSaveNote = async (day) => {
     try {
-      const updatedNotes = {
-        ...plan.dayNotes,
-        [day]: noteText.trim(),
-      };
-      // Remove empty notes
-      if (!noteText.trim()) {
-        delete updatedNotes[day];
-      }
+      const updatedNotes = { ...plan.dayNotes, [day]: noteText.trim() };
+      if (!noteText.trim()) delete updatedNotes[day];
       await mealPlansApi.updateNotes(plan.id, updatedNotes);
       loadData();
       setEditingNoteDay(null);
@@ -193,221 +159,135 @@ export default function PlannerPage() {
       </div>
 
       <div className="planner-controls">
-        <button className="btn btn-secondary btn-sm" onClick={prevWeek}>
-          ← Prev
-        </button>
-        <button className="btn btn-secondary btn-sm" onClick={goToday}>
-          Today
-        </button>
-        <button className="btn btn-secondary btn-sm" onClick={nextWeek}>
-          Next →
-        </button>
-        <h2>
-          Week of {formatDate(weekStart)} – {formatDate(addDays(weekStart, 6))}
-        </h2>
+        <button className="btn btn-secondary btn-sm" onClick={prevWeek}>← Prev</button>
+        <button className="btn btn-secondary btn-sm" onClick={goToday}>Today</button>
+        <button className="btn btn-secondary btn-sm" onClick={nextWeek}>Next →</button>
+        <h2>Week of {formatDate(weekStart)} – {formatDate(addDays(weekStart, 6))}</h2>
       </div>
 
       <DragDropContext onDragEnd={handleDragEnd}>
-        {/* Planner Grid */}
-        <div className="planner-grid">
-          {/* Header row */}
-          <div className="planner-corner" />
-          {DAYS.map((day, i) => (
-            <div key={day} className="planner-day-header">
-              <div>{DAY_LABELS[i]}</div>
-              <div className="date">{formatDate(addDays(weekStart, i))}</div>
-              <div className="day-notes-section">
-                {editingNoteDay === day ? (
-                  <div className="notes-editor">
-                    <textarea
-                      value={noteText}
-                      onChange={(e) => setNoteText(e.target.value)}
-                      placeholder="Add notes for this day..."
-                      rows={2}
-                      autoFocus
-                      style={{
-                        width: '100%',
-                        padding: '4px',
-                        fontSize: '0.75rem',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        resize: 'vertical',
-                      }}
-                    />
-                    <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+        <div className="planner-day-grid">
+          {DAYS.map((day, i) => {
+            const entries = getEntriesForDay(day);
+
+            return (
+              <div key={day} className="planner-day-column">
+                <div className="planner-day-header">
+                  <div>{DAY_LABELS[i]}</div>
+                  <div className="date">{formatDate(addDays(weekStart, i))}</div>
+                </div>
+
+                <Droppable droppableId={day}>
+                  {(provided, snapshot) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      className={`planner-day-content ${snapshot.isDraggingOver ? 'drag-over' : ''}`}
+                    >
+                      {entries.map((entry, index) => (
+                        <Draggable
+                          key={`entry-${entry.id}`}
+                          draggableId={`entry-${entry.id}`}
+                          index={index}
+                        >
+                          {(dragProvided) => (
+                            <div
+                              ref={dragProvided.innerRef}
+                              {...dragProvided.draggableProps}
+                              {...dragProvided.dragHandleProps}
+                              className="planner-meal-chip"
+                            >
+                              {entry.meal.title}
+                              <button
+                                className="remove-btn"
+                                onClick={(e) => { e.stopPropagation(); handleRemoveEntry(entry.id); }}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                onTouchStart={(e) => e.stopPropagation()}
+                              >
+                                ✕
+                              </button>
+                              {people.length > 0 && (
+                                <div className="planner-meal-cook">
+                                  <select
+                                    value={entry.assignedCook?.id || ''}
+                                    onChange={(e) =>
+                                      handleAssignCook(entry.id, e.target.value ? parseInt(e.target.value) : null)
+                                    }
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{
+                                      fontSize: '0.7rem', border: 'none', background: 'transparent',
+                                      cursor: 'pointer', padding: '2px', maxWidth: '100%',
+                                    }}
+                                  >
+                                    <option value="">👨‍🍳 Cook?</option>
+                                    {people.map((p) => (
+                                      <option key={p.id} value={p.id}>{p.name}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
                       <button
-                        onClick={() => handleSaveNote(day)}
-                        className="btn btn-primary"
-                        style={{ fontSize: '0.7rem', padding: '2px 8px' }}
+                        className="add-btn"
+                        onClick={() => setMealSelectDay(day)}
+                        title="Add meal"
                       >
-                        Save
-                      </button>
-                      <button
-                        onClick={handleCancelNote}
-                        className="btn btn-secondary"
-                        style={{ fontSize: '0.7rem', padding: '2px 8px' }}
-                      >
-                        Cancel
+                        +
                       </button>
                     </div>
-                  </div>
-                ) : (
-                  <div className="notes-display" onClick={() => handleEditNote(day)}>
-                    {plan?.dayNotes?.[day] ? (
-                      <div
-                        className="notes-text"
-                        style={{
-                          fontSize: '0.7rem',
-                          color: '#666',
-                          padding: '4px',
-                          cursor: 'pointer',
-                          whiteSpace: 'pre-wrap',
-                          wordBreak: 'break-word',
-                          backgroundColor: '#fffbea',
-                          borderRadius: '4px',
-                          border: '1px dashed #ccc',
-                        }}
-                      >
-                        📝 {plan.dayNotes[day]}
-                      </div>
-                    ) : (
-                      <div
-                        className="notes-placeholder"
-                        style={{
-                          fontSize: '0.7rem',
-                          color: '#999',
-                          padding: '4px',
-                          cursor: 'pointer',
-                          fontStyle: 'italic',
-                        }}
-                      >
-                        + Add notes
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
+                  )}
+                </Droppable>
 
-          {/* Meal type rows */}
-          {MEAL_TYPES.map((type) => (
-            <>
-              <div key={`label-${type}`} className="planner-label">
-                {type.charAt(0) + type.slice(1).toLowerCase()}
-              </div>
-              {DAYS.map((day) => {
-                const entry = getEntry(day, type);
-                const slotId = `${day}::${type}`;
-
-                return (
-                  <Droppable key={slotId} droppableId={slotId}>
-                    {(provided, snapshot) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
-                        className={`planner-slot ${
-                          snapshot.isDraggingOver ? 'drag-over' : ''
-                        } ${entry ? 'has-meal' : ''}`}
-                      >
-                        {entry ? (
-                          <Draggable
-                            draggableId={`entry-${entry.id}`}
-                            index={0}
-                          >
-                            {(dragProvided) => (
-                              <div
-                                ref={dragProvided.innerRef}
-                                {...dragProvided.draggableProps}
-                                {...dragProvided.dragHandleProps}
-                                className="planner-meal-chip"
-                              >
-                                {entry.meal.title}
-                                <button
-                                  className="remove-btn"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRemoveEntry(entry.id);
-                                  }}
-                                  onMouseDown={(e) => e.stopPropagation()}
-                                  onTouchStart={(e) => e.stopPropagation()}
-                                >
-                                  ✕
-                                </button>
-                                {people.length > 0 && (
-                                  <div className="planner-meal-cook">
-                                    <select
-                                      value={entry.assignedCook?.id || ''}
-                                      onChange={(e) =>
-                                        handleAssignCook(
-                                          entry.id,
-                                          e.target.value
-                                            ? parseInt(e.target.value)
-                                            : null
-                                        )
-                                      }
-                                      onClick={(e) => e.stopPropagation()}
-                                      style={{
-                                        fontSize: '0.7rem',
-                                        border: 'none',
-                                        background: 'transparent',
-                                        cursor: 'pointer',
-                                        padding: '2px',
-                                        maxWidth: '100%',
-                                      }}
-                                    >
-                                      <option value="">👨‍🍳 Cook?</option>
-                                      {people.map((p) => (
-                                        <option key={p.id} value={p.id}>
-                                          {p.name}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </Draggable>
-                        ) : (
-                          <button
-                            className="add-btn"
-                            onClick={() => setMealSelectSlot({ day, type })}
-                            title="Add meal"
-                          >
-                            +
-                          </button>
-                        )}
-                        {provided.placeholder}
+                <div className="day-notes-section">
+                  {editingNoteDay === day ? (
+                    <div className="notes-editor">
+                      <textarea
+                        value={noteText}
+                        onChange={(e) => setNoteText(e.target.value)}
+                        placeholder="Add notes for this day..."
+                        rows={2}
+                        autoFocus
+                        style={{
+                          width: '100%', padding: '4px', fontSize: '0.75rem',
+                          border: '1px solid #ddd', borderRadius: '4px', resize: 'vertical',
+                        }}
+                      />
+                      <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+                        <button onClick={() => handleSaveNote(day)} className="btn btn-primary" style={{ fontSize: '0.7rem', padding: '2px 8px' }}>Save</button>
+                        <button onClick={handleCancelNote} className="btn btn-secondary" style={{ fontSize: '0.7rem', padding: '2px 8px' }}>Cancel</button>
                       </div>
-                    )}
-                  </Droppable>
-                );
-              })}
-            </>
-          ))}
+                    </div>
+                  ) : (
+                    <div className="notes-display" onClick={() => handleEditNote(day)}>
+                      {plan?.dayNotes?.[day] ? (
+                        <div className="notes-text">📝 {plan.dayNotes[day]}</div>
+                      ) : (
+                        <div className="notes-placeholder">+ Add notes</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        {/* Available Meals Panel */}
         <div className="available-meals-panel">
           <h3>Available Meals — drag onto the planner above</h3>
           <Droppable droppableId="available-meals" direction="horizontal">
             {(provided) => (
-              <div
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-                className="available-meals-list"
-              >
+              <div ref={provided.innerRef} {...provided.droppableProps} className="available-meals-list">
                 {meals.length === 0 ? (
                   <span style={{ color: '#999', fontSize: '0.9rem' }}>
                     No meals yet. Add meals from the Meals page first.
                   </span>
                 ) : (
                   meals.map((meal, index) => (
-                    <Draggable
-                      key={`avail-${meal.id}`}
-                      draggableId={`avail-${meal.id}`}
-                      index={index}
-                    >
+                    <Draggable key={`avail-${meal.id}`} draggableId={`avail-${meal.id}`} index={index}>
                       {(dragProvided) => (
                         <div
                           ref={dragProvided.innerRef}
@@ -428,44 +308,25 @@ export default function PlannerPage() {
         </div>
       </DragDropContext>
 
-      {/* Quick Add Meal Modal (click + button) */}
-      {mealSelectSlot && (
-        <div className="modal-overlay" onClick={() => setMealSelectSlot(null)}>
+      {mealSelectDay && (
+        <div className="modal-overlay" onClick={() => setMealSelectDay(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>
-              Select Meal for {mealSelectSlot.day.charAt(0) + mealSelectSlot.day.slice(1).toLowerCase()}{' '}
-              {mealSelectSlot.type.charAt(0) + mealSelectSlot.type.slice(1).toLowerCase()}
-            </h2>
+            <h2>Add Meal to {mealSelectDay.charAt(0) + mealSelectDay.slice(1).toLowerCase()}</h2>
             {meals.length === 0 ? (
-              <p style={{ color: '#999' }}>
-                No meals available. Add meals from the Meals page first.
-              </p>
+              <p style={{ color: '#999' }}>No meals available. Add meals from the Meals page first.</p>
             ) : (
               <div className="meal-select-grid">
                 {meals.map((meal) => (
                   <div
                     key={meal.id}
                     className="meal-select-item"
-                    onClick={() =>
-                      handleAddMeal(
-                        meal.id,
-                        mealSelectSlot.day,
-                        mealSelectSlot.type
-                      )
-                    }
+                    onClick={() => handleAddMeal(meal.id, mealSelectDay)}
                   >
                     <h4>{meal.title}</h4>
                     <div className="meta">
-                      {meal.effort && (
-                        <span>
-                          {meal.effort.charAt(0) + meal.effort.slice(1).toLowerCase()}
-                        </span>
-                      )}
+                      {meal.effort && <span>{meal.effort.charAt(0) + meal.effort.slice(1).toLowerCase()}</span>}
                       {(meal.prepTimeMinutes || meal.cookTimeMinutes) && (
-                        <span>
-                          {' · '}
-                          {(meal.prepTimeMinutes || 0) + (meal.cookTimeMinutes || 0)} min
-                        </span>
+                        <span> · {(meal.prepTimeMinutes || 0) + (meal.cookTimeMinutes || 0)} min</span>
                       )}
                     </div>
                   </div>
@@ -473,12 +334,7 @@ export default function PlannerPage() {
               </div>
             )}
             <div className="form-actions">
-              <button
-                className="btn btn-secondary"
-                onClick={() => setMealSelectSlot(null)}
-              >
-                Cancel
-              </button>
+              <button className="btn btn-secondary" onClick={() => setMealSelectDay(null)}>Cancel</button>
             </div>
           </div>
         </div>

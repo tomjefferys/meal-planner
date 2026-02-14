@@ -24,6 +24,8 @@ public class MealPlanEntry {
     @Enumerated(EnumType.STRING)
     private MealType mealType;
 
+    private int displayOrder;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "assigned_cook_id")
     private Person assignedCook;
@@ -77,5 +79,13 @@ public class MealPlanEntry {
 
     public void setAssignedCook(Person assignedCook) {
         this.assignedCook = assignedCook;
+    }
+
+    public int getDisplayOrder() {
+        return displayOrder;
+    }
+
+    public void setDisplayOrder(int displayOrder) {
+        this.displayOrder = displayOrder;
     }
 }

@@ -8,6 +8,7 @@ public class EntryRequest {
     private String dayOfWeek;
     private String mealType;
     private Long assignedCookId;
+    private Integer displayOrder;
     private Map<String, String> dayNotes;
 
     public Long getMealId() {
@@ -40,6 +41,14 @@ public class EntryRequest {
 
     public void setAssignedCookId(Long assignedCookId) {
         this.assignedCookId = assignedCookId;
+    }
+
+    public Integer getDisplayOrder() {
+        return displayOrder;
+    }
+
+    public void setDisplayOrder(Integer displayOrder) {
+        this.displayOrder = displayOrder;
     }
 
     public Map<String, String> getDayNotes() {
