@@ -2,6 +2,7 @@ package com.mealplanner.service;
 
 import com.mealplanner.model.Meal;
 import com.mealplanner.repository.MealRepository;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -21,7 +22,7 @@ public class MealService {
         return mealRepository.findAll();
     }
 
-    public Meal findById(Long id) {
+    public Meal findById(@NonNull Long id) {
         return mealRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Meal not found with id: " + id));
     }
@@ -30,11 +31,11 @@ public class MealService {
         return mealRepository.findByTitleContainingIgnoreCase(query);
     }
 
-    public Meal create(Meal meal) {
+    public Meal create(@NonNull Meal meal) {
         return mealRepository.save(meal);
     }
 
-    public Meal update(Long id, Meal updated) {
+    public Meal update(@NonNull Long id, Meal updated) {
         Meal meal = findById(id);
         meal.setTitle(updated.getTitle());
         meal.setDescription(updated.getDescription());
@@ -46,7 +47,7 @@ public class MealService {
         return mealRepository.save(meal);
     }
 
-    public void delete(Long id) {
+    public void delete(@NonNull Long id) {
         mealRepository.deleteById(id);
     }
 

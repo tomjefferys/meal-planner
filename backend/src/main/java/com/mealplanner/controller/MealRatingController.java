@@ -4,6 +4,7 @@ import com.mealplanner.dto.RatingRequest;
 import com.mealplanner.model.MealRating;
 import com.mealplanner.service.MealRatingService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -35,17 +36,17 @@ public class MealRatingController {
     }
 
     @PostMapping
-    public MealRating create(@RequestBody RatingRequest request) {
+    public MealRating create(@RequestBody @NonNull RatingRequest request) {
         return ratingService.create(request);
     }
 
     @PutMapping("/{id}")
-    public MealRating update(@PathVariable Long id, @RequestBody RatingRequest request) {
+    public MealRating update(@PathVariable @NonNull Long id, @RequestBody RatingRequest request) {
         return ratingService.update(id, request);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable @NonNull Long id) {
         ratingService.delete(id);
         return ResponseEntity.noContent().build();
     }

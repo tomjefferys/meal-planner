@@ -3,6 +3,7 @@ package com.mealplanner.controller;
 import com.mealplanner.model.Meal;
 import com.mealplanner.service.MealService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,22 +28,22 @@ public class MealController {
     }
 
     @GetMapping("/{id}")
-    public Meal getById(@PathVariable Long id) {
+    public Meal getById(@PathVariable @NonNull Long id) {
         return mealService.findById(id);
     }
 
     @PostMapping
-    public Meal create(@RequestBody Meal meal) {
+    public Meal create(@RequestBody @NonNull Meal meal) {
         return mealService.create(meal);
     }
 
     @PutMapping("/{id}")
-    public Meal update(@PathVariable Long id, @RequestBody Meal meal) {
+    public Meal update(@PathVariable @NonNull Long id, @RequestBody Meal meal) {
         return mealService.update(id, meal);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable @NonNull Long id) {
         mealService.delete(id);
         return ResponseEntity.noContent().build();
     }

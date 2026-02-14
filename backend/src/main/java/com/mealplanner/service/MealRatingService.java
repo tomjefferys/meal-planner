@@ -7,6 +7,7 @@ import com.mealplanner.model.Person;
 import com.mealplanner.repository.MealRatingRepository;
 import com.mealplanner.repository.MealRepository;
 import com.mealplanner.repository.PersonRepository;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -14,6 +15,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Service
 public class MealRatingService {
@@ -48,10 +50,10 @@ public class MealRatingService {
         return ratingRepository.findAverageRatingByMealId(mealId);
     }
 
-    public MealRating create(RatingRequest request) {
-        Meal meal = mealRepository.findById(request.getMealId())
+    public MealRating create(@NonNull RatingRequest request) {
+        Meal meal = mealRepository.findById(Objects.requireNonNull(request.getMealId()))
                 .orElseThrow(() -> new RuntimeException("Meal not found"));
-        Person person = personRepository.findById(request.getPersonId())
+        Person person = personRepository.findById(Objects.requireNonNull(request.getPersonId()))
                 .orElseThrow(() -> new RuntimeException("Person not found"));
 
         // Upsert: one rating per person per meal
@@ -71,7 +73,7 @@ public class MealRatingService {
         return ratingRepository.save(rating);
     }
 
-    public MealRating update(Long id, RatingRequest request) {
+    public MealRating update(@NonNull Long id, RatingRequest request) {
         MealRating rating = ratingRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Rating not found"));
         rating.setRating(request.getRating());
@@ -79,7 +81,7 @@ public class MealRatingService {
         return ratingRepository.save(rating);
     }
 
-    public void delete(Long id) {
+    public void delete(@NonNull Long id) {
         ratingRepository.deleteById(id);
     }
 }

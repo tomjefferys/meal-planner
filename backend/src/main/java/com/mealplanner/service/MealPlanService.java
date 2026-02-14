@@ -7,6 +7,7 @@ import com.mealplanner.repository.MealPlanEntryRepository;
 import com.mealplanner.repository.MealPlanRepository;
 import com.mealplanner.repository.MealRepository;
 import com.mealplanner.repository.PersonRepository;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +15,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
+import java.util.Objects;
 
 @Service
 public class MealPlanService {
@@ -37,7 +39,7 @@ public class MealPlanService {
         return mealPlanRepository.findAllByOrderByWeekStartDateDesc();
     }
 
-    public MealPlan findById(Long id) {
+    public MealPlan findById(@NonNull Long id) {
         return mealPlanRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Meal plan not found with id: " + id));
     }
@@ -54,9 +56,9 @@ public class MealPlanService {
     }
 
     @Transactional
-    public MealPlanEntry addEntry(Long planId, EntryRequest request) {
+    public MealPlanEntry addEntry(@NonNull Long planId, @NonNull EntryRequest request) {
         MealPlan plan = findById(planId);
-        Meal meal = mealRepository.findById(request.getMealId())
+        Meal meal = mealRepository.findById(Objects.requireNonNull(request.getMealId()))
                 .orElseThrow(() -> new RuntimeException("Meal not found"));
 
         MealPlanEntry entry = new MealPlanEntry();
@@ -66,7 +68,7 @@ public class MealPlanService {
         entry.setMealType(MealType.valueOf(request.getMealType()));
 
         if (request.getAssignedCookId() != null) {
-            Person cook = personRepository.findById(request.getAssignedCookId())
+            Person cook = personRepository.findById(Objects.requireNonNull(request.getAssignedCookId()))
                     .orElseThrow(() -> new RuntimeException("Person not found"));
             entry.setAssignedCook(cook);
         }
@@ -77,7 +79,7 @@ public class MealPlanService {
     }
 
     @Transactional
-    public MealPlanEntry updateEntry(Long entryId, EntryRequest request) {
+    public MealPlanEntry updateEntry(@NonNull Long entryId, @NonNull EntryRequest request) {
         MealPlanEntry entry = entryRepository.findById(entryId)
                 .orElseThrow(() -> new RuntimeException("Entry not found"));
 
@@ -88,21 +90,21 @@ public class MealPlanService {
             entry.setMealType(MealType.valueOf(request.getMealType()));
         }
         if (request.getMealId() != null) {
-            Meal meal = mealRepository.findById(request.getMealId())
+            Meal meal = mealRepository.findById(Objects.requireNonNull(request.getMealId()))
                     .orElseThrow(() -> new RuntimeException("Meal not found"));
             entry.setMeal(meal);
         }
         if (request.getAssignedCookId() != null) {
-            Person cook = personRepository.findById(request.getAssignedCookId())
+            Person cook = personRepository.findById(Objects.requireNonNull(request.getAssignedCookId()))
                     .orElseThrow(() -> new RuntimeException("Person not found"));
             entry.setAssignedCook(cook);
         }
 
-        return entryRepository.save(entry);
+        return entryRepository.save(Objects.requireNonNull(entry));
     }
 
     @Transactional
-    public void deleteEntry(Long entryId) {
+    public void deleteEntry(@NonNull Long entryId) {
         MealPlanEntry entry = entryRepository.findById(entryId)
                 .orElseThrow(() -> new RuntimeException("Entry not found"));
         MealPlan plan = entry.getMealPlan();
@@ -110,7 +112,7 @@ public class MealPlanService {
         mealPlanRepository.save(plan);
     }
 
-    public List<ShoppingItem> generateShoppingList(Long planId) {
+    public List<ShoppingItem> generateShoppingList(@NonNull Long planId) {
         MealPlan plan = findById(planId);
         return combineIngredients(plan.getEntries());
     }
@@ -196,12 +198,12 @@ public class MealPlanService {
     }
 
     @Transactional
-    public MealPlan updateDayNotes(Long planId, java.util.Map<String, String> dayNotes) {
+    public MealPlan updateDayNotes(@NonNull Long planId, java.util.Map<String, String> dayNotes) {
         MealPlan plan = findById(planId);
         if (dayNotes != null) {
             plan.getDayNotes().clear();
             plan.getDayNotes().putAll(dayNotes);
         }
-        return mealPlanRepository.save(plan);
+        return mealPlanRepository.save(Objects.requireNonNull(plan));
     }
 }
