@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+@SuppressWarnings("null")
 @ExtendWith(MockitoExtension.class)
 class MealServiceTest {
 
@@ -118,7 +119,7 @@ class MealServiceTest {
         when(mealRepository.findById(1L)).thenReturn(Optional.of(sampleMeal));
         when(mealRepository.save(any(Meal.class))).thenReturn(sampleMeal);
 
-        Meal result = mealService.update(1L, updated);
+        mealService.update(1L, updated);
 
         assertThat(sampleMeal.getTitle()).isEqualTo("Updated Spaghetti");
         assertThat(sampleMeal.getDescription()).isEqualTo("Updated description");

@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+@SuppressWarnings("null")
 @ExtendWith(MockitoExtension.class)
 class MealPlanServiceTest {
 
@@ -318,7 +319,7 @@ class MealPlanServiceTest {
         when(mealPlanRepository.findById(1L)).thenReturn(Optional.of(samplePlan));
         when(mealPlanRepository.save(any(MealPlan.class))).thenReturn(samplePlan);
 
-        MealPlan result = mealPlanService.updateDayNotes(1L, notes);
+        mealPlanService.updateDayNotes(1L, notes);
 
         assertThat(samplePlan.getDayNotes()).containsEntry("MONDAY", "Takeaway night");
         assertThat(samplePlan.getDayNotes()).containsEntry("FRIDAY", "Date night");
