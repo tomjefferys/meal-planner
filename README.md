@@ -91,6 +91,39 @@ sudo systemctl enable meal-planner
 sudo systemctl start meal-planner
 ```
 
+## Testing
+
+### Run all tests
+
+Run both backend and frontend test suites with a single command from the project root:
+
+```bash
+chmod +x test.sh
+./test.sh
+```
+
+### Backend tests only
+
+```bash
+cd backend
+./mvnw test
+```
+
+107 tests across unit and controller layers (JUnit 5, Mockito, MockMvc).
+
+### Frontend tests only
+
+```bash
+cd frontend
+npm test
+```
+
+62 tests covering the API client, components, and routing (Vitest, React Testing Library).
+
+### Continuous Integration
+
+A GitHub Actions workflow (`.github/workflows/tests.yml`) runs both test suites automatically on every push and pull request to `main`. Backend and frontend jobs run in parallel.
+
 ## API Reference
 
 ### Meals
@@ -141,20 +174,29 @@ Uses **H2** with file-based storage at `backend/data/mealplanner.mv.db`. Data pe
 meal-planner/
 ├── backend/                  # Spring Boot application
 │   ├── pom.xml
-│   └── src/main/java/com/mealplanner/
-│       ├── config/           # CORS, SPA routing
-│       ├── controller/       # REST controllers
-│       ├── dto/              # Request/response DTOs
-│       ├── model/            # JPA entities
-│       ├── repository/       # Data repositories
-│       └── service/          # Business logic
+│   └── src/
+│       ├── main/java/com/mealplanner/
+│       │   ├── config/           # CORS, SPA routing
+│       │   ├── controller/       # REST controllers
+│       │   ├── dto/              # Request/response DTOs
+│       │   ├── model/            # JPA entities
+│       │   ├── repository/       # Data repositories
+│       │   └── service/          # Business logic
+│       └── test/java/com/mealplanner/
+│           ├── controller/       # MockMvc controller tests
+│           ├── dto/              # DTO unit tests
+│           ├── model/            # Entity & enum tests
+│           └── service/          # Service unit tests
 ├── frontend/                 # React application
 │   ├── package.json
 │   ├── vite.config.js
 │   └── src/
 │       ├── api.js            # API client
+│       ├── __tests__/        # Vitest test suites
 │       ├── components/       # Reusable components
 │       └── pages/            # Page components
+├── .github/workflows/        # CI — runs tests on push/PR
 ├── build.sh                  # Production build script
+├── test.sh                   # Run all tests (backend + frontend)
 └── requirements.md           # Project requirements
 ```
