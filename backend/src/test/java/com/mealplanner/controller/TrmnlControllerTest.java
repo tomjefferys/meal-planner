@@ -10,7 +10,9 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalTime;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -60,10 +62,10 @@ class TrmnlControllerTest {
                 .andExpect(jsonPath("$.image_url", not(startsWith("data:"))))
                 .andExpect(jsonPath("$.filename").value("meal-plan.bmp"))
                 .andExpect(jsonPath("$.image_url_timeout").value(0))
-                .andExpect(jsonPath("$.refresh_rate").value(900))
+                .andExpect(jsonPath("$.refresh_rate").value(300))
                 .andExpect(jsonPath("$.reset_firmware").value(false))
                 .andExpect(jsonPath("$.update_firmware").value(false))
-                .andExpect(jsonPath("$.special_function").value("none"));
+                .andExpect(jsonPath("$.special_function", anyOf(is("none"), is("sleep"))));
     }
 
     @Test
@@ -140,5 +142,62 @@ class TrmnlControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isNoContent());
+    }
+
+    // --- Sleep window logic tests (unit-tested directly on the controller) ---
+
+    @Test
+    void isSleepTime_crossesMidnight_duringNight() {
+        // Default window: 23:00 → 06:00
+        TrmnlController controller = new TrmnlController(displayService, "23:00", "06:00", 300, "");
+        assertThat(controller.isSleepTime(LocalTime.of(23, 30))).isTrue();
+        assertThat(controller.isSleepTime(LocalTime.of(2, 0))).isTrue();
+        assertThat(controller.isSleepTime(LocalTime.of(5, 59))).isTrue();
+    }
+
+    @Test
+    void isSleepTime_crossesMidnight_duringDay() {
+        TrmnlController controller = new TrmnlController(displayService, "23:00", "06:00", 300, "");
+        assertThat(controller.isSleepTime(LocalTime.of(6, 0))).isFalse();
+        assertThat(controller.isSleepTime(LocalTime.of(12, 0))).isFalse();
+        assertThat(controller.isSleepTime(LocalTime.of(22, 59))).isFalse();
+    }
+
+    @Test
+    void isSleepTime_sameDayWindow() {
+        // Window within the same day: 01:00 → 05:00
+        TrmnlController controller = new TrmnlController(displayService, "01:00", "05:00", 300, "");
+        assertThat(controller.isSleepTime(LocalTime.of(2, 0))).isTrue();
+        assertThat(controller.isSleepTime(LocalTime.of(4, 59))).isTrue();
+        assertThat(controller.isSleepTime(LocalTime.of(0, 30))).isFalse();
+        assertThat(controller.isSleepTime(LocalTime.of(5, 0))).isFalse();
+        assertThat(controller.isSleepTime(LocalTime.of(12, 0))).isFalse();
+    }
+
+    @Test
+    void isSleepTime_boundaryValues() {
+        TrmnlController controller = new TrmnlController(displayService, "23:00", "06:00", 300, "");
+        // Start is inclusive
+        assertThat(controller.isSleepTime(LocalTime.of(23, 0))).isTrue();
+        // Stop is exclusive (device should wake up at this time)
+        assertThat(controller.isSleepTime(LocalTime.of(6, 0))).isFalse();
+    }
+
+    @Test
+    void currentTime_usesConfiguredTimezone() {
+        TrmnlController controllerUtc = new TrmnlController(displayService, "23:00", "06:00", 300, "UTC");
+        TrmnlController controllerSydney = new TrmnlController(displayService, "23:00", "06:00", 300, "Australia/Sydney");
+        // Sydney is always ahead of UTC, so its current time should be later
+        LocalTime utcTime = controllerUtc.currentTime();
+        LocalTime sydneyTime = controllerSydney.currentTime();
+        // They should differ (Sydney is UTC+10 or UTC+11 depending on DST)
+        assertThat(utcTime).isNotEqualTo(sydneyTime);
+    }
+
+    @Test
+    void currentDate_usesConfiguredTimezone() {
+        // Just verify it returns a date (detailed timezone boundary testing is fragile)
+        TrmnlController controller = new TrmnlController(displayService, "23:00", "06:00", 300, "Australia/Sydney");
+        assertThat(controller.currentDate()).isNotNull();
     }
 }

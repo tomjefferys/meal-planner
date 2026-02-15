@@ -4,6 +4,7 @@ import com.mealplanner.service.TrmnlDisplayService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +12,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.*;
 
 /**
@@ -30,9 +33,45 @@ public class TrmnlController {
     private static final Logger log = LoggerFactory.getLogger(TrmnlController.class);
 
     private final TrmnlDisplayService displayService;
+    private final LocalTime sleepStart;
+    private final LocalTime sleepStop;
+    private final int refreshRate;
+    private final ZoneId timezone;
 
-    public TrmnlController(TrmnlDisplayService displayService) {
+    public TrmnlController(TrmnlDisplayService displayService,
+                           @Value("${trmnl.sleep.start:23:00}") String sleepStartStr,
+                           @Value("${trmnl.sleep.stop:06:00}") String sleepStopStr,
+                           @Value("${trmnl.refresh-rate:300}") int refreshRate,
+                           @Value("${trmnl.timezone:}") String timezoneStr) {
         this.displayService = displayService;
+        this.sleepStart = LocalTime.parse(sleepStartStr);
+        this.sleepStop = LocalTime.parse(sleepStopStr);
+        this.refreshRate = refreshRate;
+        this.timezone = timezoneStr.isBlank() ? ZoneId.systemDefault() : ZoneId.of(timezoneStr);
+    }
+
+    /** Returns the current time in the configured timezone. */
+    LocalTime currentTime() {
+        return LocalTime.now(timezone);
+    }
+
+    /** Returns the current date in the configured timezone. */
+    LocalDate currentDate() {
+        return LocalDate.now(timezone);
+    }
+
+    /**
+     * Check whether the given time falls inside the configured sleep window.
+     * Handles windows that cross midnight (e.g. 23:00 → 06:00).
+     */
+    boolean isSleepTime(LocalTime time) {
+        if (sleepStart.isBefore(sleepStop)) {
+            // Window does NOT cross midnight (e.g. 01:00 → 05:00)
+            return !time.isBefore(sleepStart) && time.isBefore(sleepStop);
+        } else {
+            // Window crosses midnight (e.g. 23:00 → 06:00)
+            return !time.isBefore(sleepStart) || time.isBefore(sleepStop);
+        }
     }
 
     /**
@@ -75,7 +114,7 @@ public class TrmnlController {
         try {
             String imageUrl;
             if (wantsBase64) {
-                byte[] imageBytes = displayService.renderDisplayImage(LocalDate.now());
+                byte[] imageBytes = displayService.renderDisplayImage(currentDate());
                 imageUrl = "data:image/bmp;base64,"
                         + Base64.getEncoder().encodeToString(imageBytes);
             } else {
@@ -89,11 +128,11 @@ public class TrmnlController {
             response.put("image_url", imageUrl);
             response.put("filename", "meal-plan.bmp");
             response.put("image_url_timeout", 0);
-            response.put("refresh_rate", 900);
+            response.put("refresh_rate", refreshRate);
             response.put("reset_firmware", false);
             response.put("update_firmware", false);
             response.put("firmware_url", "");
-            response.put("special_function", "none");
+            response.put("special_function", isSleepTime(currentTime()) ? "sleep" : "none");
 
             log.info("TRMNL display response for {}: image_url={} (base64={})",
                     deviceId, wantsBase64 ? "<inline>" : imageUrl, wantsBase64);
@@ -114,7 +153,7 @@ public class TrmnlController {
     @GetMapping(value = "/trmnl-image", produces = MediaType.IMAGE_PNG_VALUE)
     public ResponseEntity<byte[]> trmnlImage() throws IOException {
         log.info("TRMNL image fetch");
-        byte[] imageBytes = displayService.renderDisplayImage(LocalDate.now());
+        byte[] imageBytes = displayService.renderDisplayImage(currentDate());
         return ResponseEntity.ok()
                 .contentType(Objects.requireNonNull(MediaType.IMAGE_PNG))
                 .body(imageBytes);
@@ -145,7 +184,7 @@ public class TrmnlController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date)
             throws IOException {
 
-        LocalDate targetDate = date != null ? date : LocalDate.now();
+        LocalDate targetDate = date != null ? date : currentDate();
         byte[] imageBytes = displayService.renderDisplayImage(targetDate);
 
         return ResponseEntity.ok()
