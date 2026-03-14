@@ -118,16 +118,20 @@ public class TrmnlController {
                 imageUrl = "data:image/bmp;base64,"
                         + Base64.getEncoder().encodeToString(imageBytes);
             } else {
-                // Build an absolute URL the device can fetch the image from
+                // Build an absolute URL the device can fetch the image from.
+                // Include a timestamp to prevent the device from caching the URL.
                 String baseUrl = request.getScheme() + "://" + request.getServerName()
                         + ":" + request.getServerPort();
-                imageUrl = baseUrl + "/api/trmnl-image";
+                imageUrl = baseUrl + "/api/trmnl-image?t=" + System.currentTimeMillis();
             }
+
+            // Use a unique filename each time so the device treats it as new content
+            String filename = "meal-plan-" + System.currentTimeMillis() + ".bmp";
 
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("image_url", imageUrl);
-            response.put("filename", "meal-plan.bmp");
-            response.put("image_url_timeout", 0);
+            response.put("filename", filename);
+            response.put("image_url_timeout", 300);
             response.put("refresh_rate", refreshRate);
             response.put("reset_firmware", false);
             response.put("update_firmware", false);
@@ -156,6 +160,8 @@ public class TrmnlController {
         byte[] imageBytes = displayService.renderDisplayImage(currentDate());
         return ResponseEntity.ok()
                 .contentType(Objects.requireNonNull(MediaType.IMAGE_PNG))
+                .header("Cache-Control", "no-store, no-cache, must-revalidate")
+                .header("Pragma", "no-cache")
                 .body(imageBytes);
     }
 

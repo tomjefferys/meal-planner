@@ -13,6 +13,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
@@ -26,6 +27,7 @@ public class TrmnlDisplayService {
     static final int HEIGHT = 480;
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("EEE d MMM");
+    private static final DateTimeFormatter UPDATED_FMT = DateTimeFormatter.ofPattern("HH:mm:ss");
 
     private final MealPlanRepository mealPlanRepository;
 
@@ -113,6 +115,14 @@ public class TrmnlDisplayService {
                 dayFont, mealTypeFont, mealFont, noteFont, emptyFont, true);
         drawDayColumn(g, midX + 1, 40, columnWidth, tomorrow, tomorrowEntries, tomorrowNote,
                 dayFont, mealTypeFont, mealFont, noteFont, emptyFont, false);
+
+        // "Updated HH:mm:ss" in the title bar, right-aligned
+        Font updatedFont = new Font(Font.SANS_SERIF, Font.PLAIN, 12);
+        g.setFont(updatedFont);
+        g.setColor(Color.WHITE);
+        String updatedText = "Updated " + LocalDateTime.now().format(UPDATED_FMT);
+        int textWidth = g.getFontMetrics().stringWidth(updatedText);
+        g.drawString(updatedText, WIDTH - textWidth - 12, 26);
 
         g.dispose();
 
