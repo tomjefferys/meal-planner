@@ -112,6 +112,7 @@ public class TrmnlController {
                 || "true".equalsIgnoreCase(base64Param);
 
         try {
+            String contentHash = displayService.getContentHash(currentDate());
             String imageUrl;
             if (wantsBase64) {
                 byte[] imageBytes = displayService.renderDisplayImage(currentDate());
@@ -119,14 +120,14 @@ public class TrmnlController {
                         + Base64.getEncoder().encodeToString(imageBytes);
             } else {
                 // Build an absolute URL the device can fetch the image from.
-                // Include a timestamp to prevent the device from caching the URL.
+                // Include content hash so URL changes only when data changes.
                 String baseUrl = request.getScheme() + "://" + request.getServerName()
                         + ":" + request.getServerPort();
-                imageUrl = baseUrl + "/api/trmnl-image?t=" + System.currentTimeMillis();
+                imageUrl = baseUrl + "/api/trmnl-image?h=" + contentHash;
             }
 
-            // Use a unique filename each time so the device treats it as new content
-            String filename = "meal-plan-" + System.currentTimeMillis() + ".bmp";
+            // Filename based on content hash — only changes when meal plan data changes
+            String filename = "meal-plan-" + contentHash + ".bmp";
 
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("image_url", imageUrl);

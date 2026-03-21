@@ -11,6 +11,9 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -54,6 +57,42 @@ public class TrmnlDisplayService {
         String tomorrowNote = tomorrowNotes.getOrDefault(tomorrowDayKey, null);
 
         return renderImage(today, todayEntries, todayNote, tomorrow, tomorrowEntries, tomorrowNote);
+    }
+
+    /**
+     * Returns a short hex hash representing the current display content for today and tomorrow.
+     * The hash only changes when the underlying meal plan data changes.
+     */
+    public String getContentHash(LocalDate today) {
+        LocalDate tomorrow = today.plusDays(1);
+        StringBuilder sb = new StringBuilder();
+        sb.append(today).append('|');
+        appendEntrySummary(sb, getEntriesForDate(today));
+        sb.append(getNotesForDate(today).getOrDefault(today.getDayOfWeek().name(), ""));
+        sb.append('|').append(tomorrow).append('|');
+        appendEntrySummary(sb, getEntriesForDate(tomorrow));
+        sb.append(getNotesForDate(tomorrow).getOrDefault(tomorrow.getDayOfWeek().name(), ""));
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(sb.toString().getBytes(StandardCharsets.UTF_8));
+            // First 8 hex chars is plenty to detect changes
+            StringBuilder hex = new StringBuilder();
+            for (int i = 0; i < 4; i++) {
+                hex.append(String.format("%02x", digest[i]));
+            }
+            return hex.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void appendEntrySummary(StringBuilder sb, List<MealPlanEntry> entries) {
+        for (MealPlanEntry e : entries) {
+            sb.append(e.getMealType()).append(':')
+              .append(e.getMeal() != null ? e.getMeal().getId() : "null").append(':')
+              .append(e.getAssignedCook() != null ? e.getAssignedCook().getId() : "null").append(':')
+              .append(e.getDisplayOrder()).append(';');
+        }
     }
 
     List<MealPlanEntry> getEntriesForDate(LocalDate date) {

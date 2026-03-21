@@ -214,4 +214,110 @@ class TrmnlDisplayServiceTest {
         assertNotNull(image);
         assertTrue(image.length > 0);
     }
+
+    // --- getContentHash tests ---
+
+    @Test
+    void getContentHash_returnsDeterministicHash() {
+        LocalDate today = LocalDate.of(2026, 2, 14);
+        when(mealPlanRepository.findByWeekStartDate(any()))
+                .thenReturn(Optional.of(testPlan));
+
+        String hash1 = displayService.getContentHash(today);
+        String hash2 = displayService.getContentHash(today);
+
+        assertNotNull(hash1);
+        assertEquals(8, hash1.length(), "Hash should be 8 hex characters");
+        assertEquals(hash1, hash2, "Same data should produce the same hash");
+    }
+
+    @Test
+    void getContentHash_changesWhenMealChanges() {
+        LocalDate today = LocalDate.of(2026, 2, 14);
+        when(mealPlanRepository.findByWeekStartDate(any()))
+                .thenReturn(Optional.of(testPlan));
+
+        String hashBefore = displayService.getContentHash(today);
+
+        // Change the meal on the entry
+        Meal newMeal = new Meal();
+        newMeal.setId(99L);
+        newMeal.setTitle("Fish and Chips");
+        testPlan.getEntries().get(0).setMeal(newMeal);
+
+        String hashAfter = displayService.getContentHash(today);
+
+        assertNotEquals(hashBefore, hashAfter, "Hash should change when meal changes");
+    }
+
+    @Test
+    void getContentHash_changesWhenCookChanges() {
+        LocalDate today = LocalDate.of(2026, 2, 14);
+        when(mealPlanRepository.findByWeekStartDate(any()))
+                .thenReturn(Optional.of(testPlan));
+
+        String hashBefore = displayService.getContentHash(today);
+
+        Person newCook = new Person();
+        newCook.setId(42L);
+        newCook.setName("Alice");
+        testPlan.getEntries().get(0).setAssignedCook(newCook);
+
+        String hashAfter = displayService.getContentHash(today);
+
+        assertNotEquals(hashBefore, hashAfter, "Hash should change when cook changes");
+    }
+
+    @Test
+    void getContentHash_changesWhenNoteChanges() {
+        LocalDate today = LocalDate.of(2026, 2, 14);
+        when(mealPlanRepository.findByWeekStartDate(any()))
+                .thenReturn(Optional.of(testPlan));
+
+        String hashBefore = displayService.getContentHash(today);
+
+        testPlan.getDayNotes().put("SATURDAY", "Buy extra cheese");
+
+        String hashAfter = displayService.getContentHash(today);
+
+        assertNotEquals(hashBefore, hashAfter, "Hash should change when note changes");
+    }
+
+    @Test
+    void getContentHash_changesForDifferentDates() {
+        when(mealPlanRepository.findByWeekStartDate(any()))
+                .thenReturn(Optional.of(testPlan));
+
+        String hash1 = displayService.getContentHash(LocalDate.of(2026, 2, 14));
+        String hash2 = displayService.getContentHash(LocalDate.of(2026, 2, 15));
+
+        assertNotEquals(hash1, hash2, "Hash should differ for different dates");
+    }
+
+    @Test
+    void getContentHash_handlesNoMealPlan() {
+        when(mealPlanRepository.findByWeekStartDate(any()))
+                .thenReturn(Optional.empty());
+
+        String hash = displayService.getContentHash(LocalDate.of(2026, 3, 1));
+
+        assertNotNull(hash);
+        assertEquals(8, hash.length());
+    }
+
+    @Test
+    void getContentHash_unchangedWhenIrrelevantFieldChanges() {
+        LocalDate today = LocalDate.of(2026, 2, 14);
+        when(mealPlanRepository.findByWeekStartDate(any()))
+                .thenReturn(Optional.of(testPlan));
+
+        String hashBefore = displayService.getContentHash(today);
+
+        // Change only the entry's own ID — not part of the hash input
+        testPlan.getEntries().get(0).setId(999L);
+
+        String hashAfter = displayService.getContentHash(today);
+
+        assertEquals(hashBefore, hashAfter, "Hash should not change for non-display fields");
+    }
 }
