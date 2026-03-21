@@ -52,6 +52,7 @@ class TrmnlControllerTest {
     void display_returnsImageUrl() throws Exception {
         // When no BASE64 header is sent, the response should contain a fetchable URL
         byte[] fakeImage = new byte[]{(byte) 0x89, 'P', 'N', 'G'};
+        when(displayService.getContentHash(any(LocalDate.class))).thenReturn("");
         when(displayService.renderDisplayImage(any(LocalDate.class))).thenReturn(fakeImage);
 
         mockMvc.perform(get("/api/display")
@@ -61,7 +62,7 @@ class TrmnlControllerTest {
                 .andExpect(jsonPath("$.image_url", containsString("/api/trmnl-image")))
                 .andExpect(jsonPath("$.image_url", not(startsWith("data:"))))
                 .andExpect(jsonPath("$.filename").value("meal-plan.bmp"))
-                .andExpect(jsonPath("$.image_url_timeout").value(0))
+                .andExpect(jsonPath("$.image_url_timeout").value(300))
                 .andExpect(jsonPath("$.refresh_rate").value(300))
                 .andExpect(jsonPath("$.reset_firmware").value(false))
                 .andExpect(jsonPath("$.update_firmware").value(false))

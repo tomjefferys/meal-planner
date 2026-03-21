@@ -127,7 +127,9 @@ public class TrmnlController {
             }
 
             // Filename based on content hash — only changes when meal plan data changes
-            String filename = "meal-plan-" + contentHash + ".bmp";
+            String filename = (contentHash != null && !contentHash.isEmpty())
+                    ? "meal-plan-" + contentHash + ".bmp"
+                    : "meal-plan.bmp";
 
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("image_url", imageUrl);
