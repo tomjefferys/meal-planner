@@ -5,7 +5,7 @@ import { mealPlansApi, mealsApi, peopleApi } from '../api';
 const DAYS = ['SATURDAY', 'SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'];
 const DAY_LABELS = ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 
-function getSaturday(date) {
+export function getSaturday(date) {
   const d = new Date(date);
   const day = d.getDay();
   const diff = (day - 6 + 7) % 7;
@@ -13,19 +13,22 @@ function getSaturday(date) {
   return d;
 }
 
-function formatDate(dateStr) {
+export function formatDate(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
-function addDays(dateStr, days) {
+export function addDays(dateStr, days) {
   const d = new Date(dateStr + 'T00:00:00');
   d.setDate(d.getDate() + days);
-  return d.toISOString().split('T')[0];
+  return toISODate(d);
 }
 
-function toISODate(date) {
-  return date.toISOString().split('T')[0];
+export function toISODate(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export default function PlannerPage() {
